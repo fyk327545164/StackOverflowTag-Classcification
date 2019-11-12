@@ -2,6 +2,7 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 from Models import *
 from configuration import Configuration
+import tensorflow as tf
 
 
 class Vocab:
@@ -103,17 +104,37 @@ def main():
 
     print("Start Training!")
 
-    # model = FastText(Configuration('FastText'), vocab_size)
-    # model = TextCNN(Configuration('TextCNN'), vocab_size)
-    # model = TextRNN(Configuration('TextRNN'), vocab_size)
-    model = TextRCNN(Configuration('TextRCNN'), vocab_size)
-
+    model = FastText(Configuration('FastText'), vocab_size)
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
                   loss=tf.keras.losses.CategoricalCrossentropy(),
                   metrics=[tf.keras.metrics.CategoricalAccuracy()])
-
     model.fit(train.X, train.Y, epochs=2, batch_size=64,
               validation_data=(test.X, test.Y))
+    model.summary()
+
+    model = TextCNN(Configuration('TextCNN'), vocab_size)
+    model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
+                  loss=tf.keras.losses.CategoricalCrossentropy(),
+                  metrics=[tf.keras.metrics.CategoricalAccuracy()])
+    model.fit(train.X, train.Y, epochs=2, batch_size=64,
+              validation_data=(test.X, test.Y))
+    model.summary()
+
+    model = TextRNN(Configuration('TextRNN'), vocab_size)
+    model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
+                  loss=tf.keras.losses.CategoricalCrossentropy(),
+                  metrics=[tf.keras.metrics.CategoricalAccuracy()])
+    model.fit(train.X, train.Y, epochs=2, batch_size=64,
+              validation_data=(test.X, test.Y))
+    model.summary()
+
+    model = TextRCNN(Configuration('TextRCNN'), vocab_size)
+    model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
+                  loss=tf.keras.losses.CategoricalCrossentropy(),
+                  metrics=[tf.keras.metrics.CategoricalAccuracy()])
+    model.fit(train.X, train.Y, epochs=2, batch_size=64,
+              validation_data=(test.X, test.Y))
+    model.summary()
 
 
 main()
