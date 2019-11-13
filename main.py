@@ -36,6 +36,7 @@ def preprocess(filename, vocab):
             words = line.split()
 
             for word in words:
+                word = word.lower()
                 if not vocab.hasWord(word):
                     vocab.word2id[word] = vocab.nextID
                     vocab.id2word[vocab.nextID] = word
