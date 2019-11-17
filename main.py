@@ -3,6 +3,9 @@ from sklearn.model_selection import train_test_split
 from Models import *
 from configuration import Configuration
 import tensorflow as tf
+import operator
+# import os
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class Vocab:
@@ -10,7 +13,7 @@ class Vocab:
         self.word2id = {}
         self.id2word = {}
 
-        self.nextID = 1
+        self.word_count = {}
 
     def getID(self, word):
         return self.word2id[word]
@@ -20,6 +23,36 @@ class Vocab:
 
     def hasWord(self, word):
         return word in self.word2id.keys()
+
+    def build(self, filenames):
+
+        spec = '`~!@#$%^&*()_+-=[]\{}|;:,./<>?[]{}·”…□○●、。《》「」『』〖〗'
+
+        for filename in filenames:
+            with open(filename, 'r') as f:
+                lines = f.readlines()
+                for line in lines:
+                    for s in spec:
+                        line = line.replace(s, ' ')
+                    words = line.split()
+
+                    for word in words:
+                        word = word.lower()
+                        if word not in self.word_count:
+                            self.word_count[word] = 1
+                        else:
+                            self.word_count[word] += 1
+
+        sorted_dic = sorted(self.word_count.items(), key=operator.itemgetter(1), reverse=True)[:7999]
+
+        self.word2id['<unknown>'] = 1
+        self.id2word[1] = '<unknown>'
+
+        index = 2
+        for key, _ in sorted_dic:
+            self.word2id[key] = index
+            self.id2word[index] = key
+            index += 1
 
 
 def preprocess(filename, vocab):
@@ -38,11 +71,10 @@ def preprocess(filename, vocab):
             for word in words:
                 word = word.lower()
                 if not vocab.hasWord(word):
-                    vocab.word2id[word] = vocab.nextID
-                    vocab.id2word[vocab.nextID] = word
-                    vocab.nextID += 1
+                    word = '<unknown>'
                 words_list.append(vocab.word2id[word])
             res.append(words_list)
+
     return res
 
 
@@ -84,6 +116,8 @@ def main():
 
     vocab = Vocab()
 
+    vocab.build(['aws_title.txt', 'azure_title.txt', 'gcp_title.txt'])
+
     X_aws = preprocess('aws_title.txt', vocab)
     Y_aws = [0 for _ in range(len(X_aws))]
     X_azure = preprocess('azure_title.txt', vocab)
@@ -101,7 +135,7 @@ def main():
     train = DataLoader(X_train, Y_train, 0, 50)
     test = DataLoader(X_test, Y_test, 0, 50)
 
-    vocab_size = vocab.nextID
+    vocab_size = 8000
 
     print("Start Training!")
 
@@ -109,7 +143,7 @@ def main():
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
                   loss=tf.keras.losses.CategoricalCrossentropy(),
                   metrics=[tf.keras.metrics.CategoricalAccuracy()])
-    model.fit(train.X, train.Y, epochs=2, batch_size=64,
+    model.fit(train.X, train.Y, epochs=3, batch_size=64,
               validation_data=(test.X, test.Y))
     model.summary()
 
@@ -117,7 +151,7 @@ def main():
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
                   loss=tf.keras.losses.CategoricalCrossentropy(),
                   metrics=[tf.keras.metrics.CategoricalAccuracy()])
-    model.fit(train.X, train.Y, epochs=2, batch_size=64,
+    model.fit(train.X, train.Y, epochs=3, batch_size=64,
               validation_data=(test.X, test.Y))
     model.summary()
 
@@ -125,7 +159,7 @@ def main():
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
                   loss=tf.keras.losses.CategoricalCrossentropy(),
                   metrics=[tf.keras.metrics.CategoricalAccuracy()])
-    model.fit(train.X, train.Y, epochs=2, batch_size=64,
+    model.fit(train.X, train.Y, epochs=3, batch_size=64,
               validation_data=(test.X, test.Y))
     model.summary()
 
@@ -133,7 +167,7 @@ def main():
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
                   loss=tf.keras.losses.CategoricalCrossentropy(),
                   metrics=[tf.keras.metrics.CategoricalAccuracy()])
-    model.fit(train.X, train.Y, epochs=2, batch_size=64,
+    model.fit(train.X, train.Y, epochs=3, batch_size=64,
               validation_data=(test.X, test.Y))
     model.summary()
 
