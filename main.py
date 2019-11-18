@@ -4,8 +4,7 @@ from Models import *
 from configuration import Configuration
 import tensorflow as tf
 import operator
-# import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+import numpy as np
 
 
 class Vocab:
@@ -64,6 +63,7 @@ def preprocess(filename, vocab):
         lines = f.readlines()
         for line in lines:
             words_list = []
+            # word_s = ""
             for s in spec:
                 line = line.replace(s, ' ')
             words = line.split()
@@ -72,9 +72,10 @@ def preprocess(filename, vocab):
                 word = word.lower()
                 if not vocab.hasWord(word):
                     word = '<unknown>'
+                # word_s = word_s + ' ' + word
                 words_list.append(vocab.word2id[word])
             res.append(words_list)
-
+            # res.append(word_s)
     return res
 
 
@@ -89,27 +90,8 @@ class DataLoader:
         self.seq_length = seq_length
         self.padding_idx = padding_idx
 
-        self.X = []
-        self.Y = []
-
-        self.build(X, Y)
-
-    def build(self, X, Y):
-
-        for x, y in zip(X, Y):
-            d = [self.padding_idx for _ in range(self.seq_length)]
-
-            if len(x) <= self.seq_length:
-                d[:len(x)] = x[:]
-            else:
-                d[:] = x[:len(x)]
-
-            label = [0 for _ in range(3)]
-
-            label[y] = 1
-
-            self.X.append(d)
-            self.Y.append(label)
+        self.X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=self.seq_length, padding='post')
+        self.Y = np.array(Y)
 
 
 def main():
@@ -119,18 +101,18 @@ def main():
     vocab.build(['aws_title.txt', 'azure_title.txt', 'gcp_title.txt'])
 
     X_aws = preprocess('aws_title.txt', vocab)
-    Y_aws = [0 for _ in range(len(X_aws))]
+    Y_aws = [[1, 0, 0] for _ in range(len(X_aws))]
     X_azure = preprocess('azure_title.txt', vocab)
-    Y_azure = [1 for _ in range(len(X_azure))]
+    Y_azure = [[0, 1, 0] for _ in range(len(X_azure))]
     X_gcp = preprocess('gcp_title.txt', vocab)
-    Y_gcp = [2 for _ in range(len(X_gcp))]
+    Y_gcp = [[0, 0, 1] for _ in range(len(X_gcp))]
 
     X = X_aws + X_azure + X_gcp
     Y = Y_aws + Y_azure + Y_gcp
 
     X, Y = shuffle(X, Y)
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.15)
 
     train = DataLoader(X_train, Y_train, 0, 50)
     test = DataLoader(X_test, Y_test, 0, 50)
@@ -139,37 +121,78 @@ def main():
 
     print("Start Training!")
 
-    model = FastText(Configuration('FastText'), vocab_size)
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath='model/fasttext/cp.ckpt',
+        verbose=1,
+        save_weights_only=True,
+        period=1)
+
+    model = SelfAttention(vocab_size)
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
                   loss=tf.keras.losses.CategoricalCrossentropy(),
-                  metrics=[tf.keras.metrics.CategoricalAccuracy()])
-    model.fit(train.X, train.Y, epochs=3, batch_size=64,
+                  metrics=[tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.MeanAbsoluteError()])
+    model.fit(train.X, train.Y, epochs=10, batch_size=64,
               validation_data=(test.X, test.Y))
     model.summary()
 
-    model = TextCNN(Configuration('TextCNN'), vocab_size)
-    model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
-                  loss=tf.keras.losses.CategoricalCrossentropy(),
-                  metrics=[tf.keras.metrics.CategoricalAccuracy()])
-    model.fit(train.X, train.Y, epochs=3, batch_size=64,
-              validation_data=(test.X, test.Y))
-    model.summary()
-
-    model = TextRNN(Configuration('TextRNN'), vocab_size)
-    model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
-                  loss=tf.keras.losses.CategoricalCrossentropy(),
-                  metrics=[tf.keras.metrics.CategoricalAccuracy()])
-    model.fit(train.X, train.Y, epochs=3, batch_size=64,
-              validation_data=(test.X, test.Y))
-    model.summary()
-
-    model = TextRCNN(Configuration('TextRCNN'), vocab_size)
-    model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
-                  loss=tf.keras.losses.CategoricalCrossentropy(),
-                  metrics=[tf.keras.metrics.CategoricalAccuracy()])
-    model.fit(train.X, train.Y, epochs=3, batch_size=64,
-              validation_data=(test.X, test.Y))
-    model.summary()
+    # model = FastText(Configuration('FastText'), vocab_size)
+    # model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
+    #               loss=tf.keras.losses.CategoricalCrossentropy(),
+    #               metrics=[tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.MeanAbsoluteError()])
+    # model.fit(train.X, train.Y, epochs=10, batch_size=64,
+    #           validation_data=(test.X, test.Y),
+    #           callbacks=[cp_callback])
+    # model.summary()
+    # model.load_weights('model/fasttext/cp.ckpt')
+    # model.evaluate(test.X, test.Y)
+    #
+    # cp_callback = tf.keras.callbacks.ModelCheckpoint(
+    #     filepath='model/textcnn/cp.ckpt',
+    #     verbose=1,
+    #     save_weights_only=True,
+    #     period=1)
+    #
+    # model = TextCNN(Configuration('TextCNN'), vocab_size)
+    # model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
+    #               loss=tf.keras.losses.CategoricalCrossentropy(),
+    #               metrics=[tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.MeanAbsoluteError()])
+    # # model.fit(train.X, train.Y, epochs=10, batch_size=64,
+    # #           validation_data=(test.X, test.Y),
+    # #           callbacks=[cp_callback])
+    # model.load_weights('model/textcnn/cp.ckpt')
+    # model.evaluate(test.X, test.Y)
+    #
+    # cp_callback = tf.keras.callbacks.ModelCheckpoint(
+    #     filepath='model/textrnn/cp.ckpt',
+    #     verbose=1,
+    #     save_weights_only=True,
+    #     period=1)
+    #
+    # model = TextRNN(Configuration('TextRNN'), vocab_size)
+    # model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
+    #               loss=tf.keras.losses.CategoricalCrossentropy(),
+    #               metrics = [tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.MeanAbsoluteError()])
+    # # model.fit(train.X, train.Y, epochs=10, batch_size=64,
+    # #           validation_data=(test.X, test.Y),
+    # #           callbacks=[cp_callback])
+    # model.load_weights('model/textrnn/cp.ckpt')
+    # model.evaluate(test.X, test.Y)
+    #
+    # cp_callback = tf.keras.callbacks.ModelCheckpoint(
+    #     filepath='model/textrcnn/cp.ckpt',
+    #     verbose=1,
+    #     save_weights_only=True,
+    #     period=1)
+    #
+    # model = TextRCNN(Configuration('TextRCNN'), vocab_size)
+    # model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
+    #               loss=tf.keras.losses.CategoricalCrossentropy(),
+    #               metrics = [tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.MeanAbsoluteError()])
+    # # model.fit(train.X, train.Y, epochs=10, batch_size=64,
+    # #           validation_data=(test.X, test.Y),
+    # #           callbacks=[cp_callback])
+    # model.load_weights('model/textrcnn/cp.ckpt')
+    # model.evaluate(test.X, test.Y)
 
 
 main()

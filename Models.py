@@ -13,9 +13,13 @@ class FastText(tf.keras.Model):
         self.dense2 = tf.keras.layers.Dense(self.config.OUTPUT_DIM, input_shape=(None, self.config.HIDDEN_DIM))
 
     def call(self, inputs, training=None, mask=None):
-        embed = tf.reduce_mean(self.embedding(inputs), 1)
+        embed = self.embedding(inputs)
 
-        z = self.dense2(self.dense1(embed))
+        mask = tf.cast(tf.tile(tf.expand_dims(inputs, axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
+
+        out = tf.reduce_mean(embed * mask, 1)
+
+        z = self.dense2(self.dense1(out))
 
         return tf.keras.activations.softmax(z)
 
@@ -47,7 +51,10 @@ class TextCNN(tf.keras.Model):
 
     def call(self, inputs, training=None, mask=None):
 
-        embed = self.embedding(inputs)
+        mask = tf.cast(tf.tile(tf.expand_dims(inputs, axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
+
+        embed = self.embedding(inputs) * mask
+
         conv1 = tf.squeeze(self.maxPool1(self.conv1(embed)), 1)
         conv2 = tf.squeeze(self.maxPool2(self.conv2(embed)), 1)
         conv3 = tf.squeeze(self.maxPool3(self.conv3(embed)), 1)
@@ -80,8 +87,9 @@ class TextRNN(tf.keras.Model):
 
         embed = self.embedding(inputs)
 
-        forward_out = self.forward_LSTM(embed)
-        backward_out = self.backward_LSTM(embed)
+        mask = self.embedding.compute_mask(inputs)
+        forward_out = self.forward_LSTM(embed, mask=mask)
+        backward_out = self.backward_LSTM(embed, mask=mask)
 
         out = tf.concat([forward_out, backward_out], axis=-1)
 
@@ -112,10 +120,13 @@ class TextRCNN(tf.keras.Model):
 
     def call(self, inputs, training=None, mask=None):
 
-        embed = self.embedding(inputs)
+        mask = tf.cast(tf.tile(tf.expand_dims(inputs, axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
 
-        forward_out = self.forward_LSTM(embed)
-        backward_out = self.backward_LSTM(embed)
+        embed = self.embedding(inputs) * mask
+
+        mask = self.embedding.compute_mask(inputs)
+        forward_out = self.forward_LSTM(embed, mask=mask)
+        backward_out = self.backward_LSTM(embed, mask=mask)
 
         out = tf.concat([forward_out, embed, backward_out], axis=-1)
 
@@ -129,3 +140,73 @@ class TextRCNN(tf.keras.Model):
         out = self.dense2(tf.squeeze(out, 1))
 
         return tf.keras.activations.softmax(out)
+
+
+class SelfAttention(tf.keras.Model):
+    def __init__(self, VOCAB_SIZE):
+        super(SelfAttention, self).__init__()
+
+        self.embedding = tf.keras.layers.Embedding(VOCAB_SIZE + 1, 128, mask_zero=True)
+
+        self.weight = []
+        for i in range(2):
+            sub_layer = []
+            for j in range(4):
+                dense_Q = tf.keras.layers.Dense(64, input_shape=(None, 128), name='dense_Q_'+str(i)+"_"+str(j))
+                dense_K = tf.keras.layers.Dense(64, input_shape=(None, 128), name='dense_K_'+str(i)+"_"+str(j))
+                dense_V = tf.keras.layers.Dense(64, input_shape=(None, 128), name='dense_V_'+str(i)+"_"+str(j))
+                sub_layer.append([dense_Q, dense_K, dense_V])
+            multihead_dense = tf.keras.layers.Dense(128, input_shape=(None, 64 * 4), name='dense_Q_'+str(i))
+            FF_1 = tf.keras.layers.Dense(128, input_shape=(None, 128), name='dense_FF1_'+str(i))
+            FF_2 = tf.keras.layers.Dense(128, input_shape=(None, 128), name='dense_FF2_' + str(i))
+            self.weight.append([sub_layer, multihead_dense, FF_1, FF_2])
+
+        self.dense = tf.keras.layers.Dense(3, input_shape=(None, 10))
+
+        self.conv = tf.keras.layers.Conv1D(1, 5, strides=5)
+
+    def call(self, inputs, training=None, mask=None):
+
+        mask = tf.cast(tf.tile(tf.expand_dims(inputs, axis=-1), [1, 1, 128]), tf.float32)
+
+        out = self.embedding(inputs) * mask
+
+        for i in range(2):
+            multihead_out = self.build_multiHead_attention(out, out, out, self.weight[i][0], self.weight[i][1])
+
+            out = tf.math.l2_normalize(out+multihead_out, axis=-1)
+
+            FF_out = self.build_FFNN(out, self.weight[i][2], self.weight[i][2])
+
+            out = FF_out + out
+
+        return tf.keras.activations.softmax(self.dense(tf.squeeze(self.conv(out), axis=-1)))
+
+    def build_scaled_dotProduct_attention(self, Q, K, V):
+
+        Q_K = tf.matmul(Q, tf.transpose(K, perm=[0, 2, 1])) / (128 ** 0.5)
+
+        out = tf.matmul(tf.keras.activations.softmax(Q_K), V)
+
+        return out
+
+    def build_multiHead_attention(self, Q, K, V, weights, multi_dense):
+
+        heads = []
+
+        for i in range(4):
+            dense_Q = weights[i][0]
+            dense_K = weights[i][1]
+            dense_V = weights[i][2]
+            heads.append(self.build_scaled_dotProduct_attention(dense_Q(Q), dense_K(K), dense_V(V)))
+
+        multiHead = tf.concat(heads, axis=-1)
+
+        return multi_dense(multiHead)
+
+    def build_FFNN(self, inputs, FF1, FF2):
+
+        return FF2(tf.keras.activations.relu(FF1(inputs)))
+
+
+

@@ -10,6 +10,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
 
 vocab = Vocab()
@@ -23,7 +24,7 @@ Y = [0 for _ in range(len(X_aws))] + [1 for _ in range(len(X_azure))] + [2 for _
 
 X_aws, X_azure, X_gcp = 0, 0, 0
 
-cv = CountVectorizer(max_df=0.85, max_features=8000)
+cv = CountVectorizer(max_df=0.85, max_features=5000)
 X = cv.fit_transform(X)
 
 tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
@@ -38,21 +39,26 @@ lr.fit(X, Y)
 print(lr.score(X, Y))
 print(lr.score(X_test, Y_test))
 
+knn = KNeighborsClassifier()
+knn.fit(X, Y)
+print(knn.score(X, Y))
+print(knn.score(X_test, Y_test))
+
 nb = GaussianNB()
-nb.fit(X.toarray(), Y)
-print(nb.score(X.toarray(), Y))
-print(nb.score(X_test.toarray(), Y_test))
+nb.fit(X, Y)
+print(nb.score(X, Y))
+print(nb.score(X_test, Y_test))
 
-svm = SVC()
-svm.fit(X, Y)
-print(svm.score(X_test, Y_test))
+# svm = SVC()
+# svm.fit(X, Y)
+# print(svm.score(X_test, Y_test))
 
-dt = DecisionTreeClassifier()
-dt.fit(X, Y)
-print(dt.score(X, Y))
-print(dt.score(X_test, Y_test))
-
-rf = RandomForestClassifier()
-rf.fit(X, Y)
-print(rf.score(X, Y))
-print(rf.score(X_test, Y_test))
+# dt = DecisionTreeClassifier()
+# dt.fit(X, Y)
+# print(dt.score(X, Y))
+# print(dt.score(X_test, Y_test))
+#
+# rf = RandomForestClassifier()
+# rf.fit(X, Y)
+# print(rf.score(X, Y))
+# print(rf.score(X_test, Y_test))
