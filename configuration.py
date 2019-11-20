@@ -30,3 +30,14 @@ class Configuration:
             self.HIDDEN_DIM = 64
             self.MAX_LENGTH = 50
             self.OUTPUT_DIM = 3
+
+        elif mode == 'SelfAttention':
+
+            self.EMBEDDING_DIM = 128
+
+            self.num_layer = 1
+            self.num_heads = 4
+
+            self.dim = 32
+
+            self.OUTPUT_DIM = 3

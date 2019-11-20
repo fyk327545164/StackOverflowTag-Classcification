@@ -26,14 +26,18 @@ Several Deep Models are implemented
 * testing_size: 0.2
 ### Models
 #### FastText
-* Accuracy on training: 0.9574
-* Accuracy on testing: 0.9411
+* Accuracy on training: 0.9294
+* Accuracy on testing: 0.9111
 #### TextCNN
-* Accuracy on training: 0.9622
-* Accuracy on testing: 0.9457
+* Accuracy on training: 0.9125
+* Accuracy on testing: 0.9172
 #### TextRNN
-* Accuracy on training: 0.9599
-* Accuracy on testing: 0.9410
+* Accuracy on training: 0.9858
+* Accuracy on testing: 0.9467
 #### TextRCNN
-* Accuracy on training: 0.9603
-* Accuracy on testing: 0.9427
+* Accuracy on training: 0.9327
+* Accuracy on testing: 0.9371
+
+#### SelfAttention
+* Accuracy on training: 0.9367
+* Accuracy on testing: 0.9174
