@@ -164,7 +164,7 @@ class SelfAttention(tf.keras.Model):
             multihead_dense = tf.keras.layers.Dense(self.config.EMBEDDING_DIM,
                                                     input_shape=(None, self.config.dim * self.config.num_heads),
                                                     name='dense_Q_'+str(i))
-            FF_1 = tf.keras.layers.Dense(self.config.EMBEDDING_DIM, input_shape=(None, self.config.EMBEDDING_DIM),
+            FF_1 = tf.keras.layers.Dense(self.config.EMBEDDING_DIM * 2, input_shape=(None, self.config.EMBEDDING_DIM),
                                          name='dense_FF1_'+str(i))
             FF_2 = tf.keras.layers.Dense(self.config.EMBEDDING_DIM, input_shape=(None, self.config.EMBEDDING_DIM),
                                          name='dense_FF2_' + str(i))

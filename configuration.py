@@ -35,7 +35,7 @@ class Configuration:
 
             self.EMBEDDING_DIM = 128
 
-            self.num_layer = 1
+            self.num_layer = 3
             self.num_heads = 4
 
             self.dim = 32

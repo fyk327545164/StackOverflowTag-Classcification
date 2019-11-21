@@ -44,7 +44,9 @@ if __name__ == '__main__':
     config = Configuration(mode)
 
     cp_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath='model/'+mode+'/cp.ckpt', verbose=1, save_weights_only=True, period=1)
+        filepath='./model/'+mode+'/ckp/cp.ckpt', verbose=1, save_weights_only=True, period=1)
+    tb_callback = tf.keras.callbacks.TensorBoard(
+        log_dir='model\\' + mode + '\\log\\', update_freq='batch', embeddings_freq=1)
 
     # model = FastText(config, vocab_size)
     # model = TextCNN(config, vocab_size)
@@ -54,14 +56,15 @@ if __name__ == '__main__':
 
     model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
                   loss=tf.keras.losses.CategoricalCrossentropy(),
-                  metrics=[tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.MeanAbsoluteError()])
+                  metrics=[tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.MeanAbsoluteError()],
+                  run_eagerly=True)
 
     print("Start Training.....")
 
     start_time = time.time()
     model.fit(train.X, train.Y, epochs=10, batch_size=64,
               validation_data=(test.X, test.Y),
-              callbacks=[cp_callback])
+              callbacks=[cp_callback, tb_callback])
     end_time = time.time()
 
     print('time for 10 epochs: ' + str(end_time-start_time))
