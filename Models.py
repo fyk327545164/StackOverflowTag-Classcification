@@ -15,7 +15,7 @@ class FastText(tf.keras.Model):
     def call(self, inputs, training=None, mask=None):
         embed = self.embedding(inputs)
 
-        mask = tf.cast(tf.tile(tf.expand_dims(inputs, axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
+        mask = tf.cast(tf.tile(tf.expand_dims(tf.sign(inputs), axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
 
         out = tf.reduce_mean(embed * mask, 1)
 
@@ -51,7 +51,7 @@ class TextCNN(tf.keras.Model):
 
     def call(self, inputs, training=None, mask=None):
 
-        mask = tf.cast(tf.tile(tf.expand_dims(inputs, axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
+        mask = tf.cast(tf.tile(tf.expand_dims(tf.sign(inputs), axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
 
         embed = self.embedding(inputs) * mask
 
@@ -88,6 +88,7 @@ class TextRNN(tf.keras.Model):
         embed = self.embedding(inputs)
 
         mask = self.embedding.compute_mask(inputs)
+
         forward_out = self.forward_LSTM(embed, mask=mask)
         backward_out = self.backward_LSTM(embed, mask=mask)
 
@@ -120,15 +121,15 @@ class TextRCNN(tf.keras.Model):
 
     def call(self, inputs, training=None, mask=None):
 
-        mask = tf.cast(tf.tile(tf.expand_dims(inputs, axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
+        mask1 = tf.cast(tf.tile(tf.expand_dims(tf.sign(inputs), axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
 
-        embed = self.embedding(inputs) * mask
+        embed = self.embedding(inputs)
 
         mask = self.embedding.compute_mask(inputs)
         forward_out = self.forward_LSTM(embed, mask=mask)
         backward_out = self.backward_LSTM(embed, mask=mask)
 
-        out = tf.concat([forward_out, embed, backward_out], axis=-1)
+        out = tf.concat([forward_out, embed * mask1, backward_out], axis=-1)
 
         out = self.dense1(out)
 
@@ -176,7 +177,7 @@ class SelfAttention(tf.keras.Model):
 
     def call(self, inputs, training=None, mask=None):
 
-        mask = tf.cast(tf.tile(tf.expand_dims(inputs, axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
+        mask = tf.cast(tf.tile(tf.expand_dims(tf.sign(inputs), axis=-1), [1, 1, self.config.EMBEDDING_DIM]), tf.float32)
 
         out = self.embedding(inputs) * mask
 

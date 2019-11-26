@@ -17,27 +17,26 @@ Data is scraped from StackOverflow.
 ## Deep-Learning Models
 Several Deep Models are implemented  
 ### Training Details
-* steps: 2 epochs
+* steps: 3 epochs
 * batch_size: 64
 * embedding_size: 128
-* max_seq_length: 50
+* max_seq_length: 20
 * RNN_dimension: 128
 * dropout_rate: 0.5
-* testing_size: 0.2
+* testing_size: 0.15
 ### Models
 #### FastText
-* Accuracy on training: 0.9294
-* Accuracy on testing: 0.9111
+* Accuracy on training: 0.9506
+* Accuracy on testing: 0.9442
 #### TextCNN
-* Accuracy on training: 0.9125
-* Accuracy on testing: 0.9172
+* Accuracy on training: 0.9543
+* Accuracy on testing: 0.9473
 #### TextRNN
-* Accuracy on training: 0.9858
-* Accuracy on testing: 0.9467
+* Accuracy on training: 0.9521
+* Accuracy on testing: 0.9462
 #### TextRCNN
-* Accuracy on training: 0.9327
-* Accuracy on testing: 0.9371
-
+* Accuracy on training: 0.9626
+* Accuracy on testing: 0.9478
 #### SelfAttention
-* Accuracy on training: 0.9367
-* Accuracy on testing: 0.9174
+* Accuracy on training: 0.9541
+* Accuracy on testing: 0.9453

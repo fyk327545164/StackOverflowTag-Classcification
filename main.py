@@ -20,20 +20,27 @@ if __name__ == '__main__':
 
     X_aws = preprocess('data/aws_title.txt', vocab)
     Y_aws = [[1, 0, 0] for _ in range(len(X_aws))]
+    aws_X_train, aws_X_test, aws_Y_train, aws_Y_test = train_test_split(X_aws, Y_aws, test_size=0.15, random_state=42)
     X_azure = preprocess('data/azure_title.txt', vocab)
     Y_azure = [[0, 1, 0] for _ in range(len(X_azure))]
+    azure_X_train, azure_X_test, azure_Y_train, azure_Y_test = train_test_split(X_azure, Y_azure, test_size=0.15, random_state=42)
     X_gcp = preprocess('data/gcp_title.txt', vocab)
     Y_gcp = [[0, 0, 1] for _ in range(len(X_gcp))]
+    gcp_X_train, gcp_X_test, gcp_Y_train, gcp_Y_test = train_test_split(X_gcp, Y_gcp, test_size=0.15, random_state=42)
 
-    X = X_aws + X_azure + X_gcp
-    Y = Y_aws + Y_azure + Y_gcp
+    X_train = aws_X_train + azure_X_train + gcp_X_train
+    Y_train = aws_Y_train + azure_Y_train + gcp_Y_train
 
-    X, Y = shuffle(X, Y)
+    X_test = aws_X_test + azure_X_test + gcp_X_test
+    Y_test = aws_Y_test + azure_Y_test + gcp_Y_test
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.15)
+    X_train, Y_train = shuffle(X_train, Y_train)
 
-    train = DataLoader(X_train, Y_train, 50)
-    test = DataLoader(X_test, Y_test, 50)
+    # X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.15)
+
+    train = DataLoader(X_train, Y_train, 20)
+    test = DataLoader(X_test, Y_test, 20)
+    # print(train.X)
 
     vocab_size = vocab.size
 
@@ -45,8 +52,8 @@ if __name__ == '__main__':
 
     cp_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath='./model/'+mode+'/ckp/cp.ckpt', verbose=1, save_weights_only=True, period=1)
-    tb_callback = tf.keras.callbacks.TensorBoard(
-        log_dir='model\\' + mode + '\\log\\', update_freq='batch', embeddings_freq=1)
+    # tb_callback = tf.keras.callbacks.TensorBoard(
+    #     log_dir='model\\' + mode + '\\log\\', update_freq='batch', embeddings_freq=1)
 
     # model = FastText(config, vocab_size)
     # model = TextCNN(config, vocab_size)
@@ -64,7 +71,7 @@ if __name__ == '__main__':
     start_time = time.time()
     model.fit(train.X, train.Y, epochs=10, batch_size=64,
               validation_data=(test.X, test.Y),
-              callbacks=[cp_callback, tb_callback])
+              callbacks=[cp_callback])#, tb_callback])
     end_time = time.time()
 
     print('time for 10 epochs: ' + str(end_time-start_time))
